@@ -19,7 +19,9 @@ Motifey adalah aplikasi pemutar musik full-stack yang terinspirasi dari Spotify.
 
 ## 📂 Struktur Project
 motifey-app/
+
 ├── frontend/    # Flutter Mobile App
+
 └── backend/     # Node.js Express API
 
 ## ⚙️ Cara Menjalankan
