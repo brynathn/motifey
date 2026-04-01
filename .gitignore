@@ -1,0 +1,26 @@
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.DS_Store
+
+# --- FRONTEND (Flutter) ---
+motifey/.dart_tool/
+motifey/.flutter-plugins
+motifey/.flutter-plugins-dependencies
+motifey/.pub-cache/
+motifey/.pub/
+motifey/build/
+motifey/linux/flutter/ephemeral/
+motifey/windows/flutter/ephemeral/
+motifey/macos/flutter/ephemeral/
+
+# --- BACKEND (Node.js) ---
+motifey-backend/node_modules/
+motifey-backend/.env
+motifey-backend/npm-debug.log*
+motifey-backend/yarn-debug.log*
+motifey-backend/yarn-error.log*
+
+# Docker
+.docker/
