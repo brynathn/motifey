@@ -26,11 +26,12 @@ motifey-app/
 1. Persiapan Backend
 Pastikan Anda memiliki Docker terinstal. Masuk ke folder backend:
 
-Bash
+```Bash
 cd backend
 Jalankan container menggunakan perintah berikut (sesuaikan koneksi DB di db.js):
 
-Bash
+
+```Bash
 docker run -it --rm --name motifey-backend \
   -p 3000:3000 \
   -v ${PWD}:/app \
@@ -38,14 +39,15 @@ docker run -it --rm --name motifey-backend \
   -w /app \
   node:22-slim \
   npx nodemon -L server.js
+
 2. Persiapan Frontend
 Masuk ke folder frontend:
 
-Bash
+```Bash
 cd frontend
 Pastikan alamat baseUrl di lib/services/api_service.dart sudah sesuai dengan IP Address laptop Anda. Lalu jalankan aplikasi:
 
-Bash
+```Bash
 flutter pub get
 flutter run
 
