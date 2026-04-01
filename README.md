@@ -56,8 +56,6 @@ Ganti baseUrl di api_service.dart menggunakan IP lokal (misal: 192.168.x.x) agar
 
 Jalankan endpoint /seed (POST) pada backend untuk mengisi data awal ke database.
 
-## Hasil
-
 ## 📸 App Screenshots
 
 <p align="center">
