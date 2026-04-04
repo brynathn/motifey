@@ -182,4 +182,19 @@ static Future<void> removeSongFromPlaylist(String playlistId, String songId) asy
     },
   );
 }
+
+static Future<void> createPlaylist(String title) async {
+  final token = await getToken();
+
+  await http.post(
+    Uri.parse("$baseUrl/playlists"),
+    headers: {
+      "Authorization": "Bearer $token",
+      "Content-Type": "application/json",
+    },
+    body: jsonEncode({
+      "title": title,
+    }),
+  );
+}
 }

@@ -12,13 +12,21 @@ class AddToPlaylistSheet extends StatefulWidget {
 
 class _AddToPlaylistSheetState extends State<AddToPlaylistSheet> {
   List<Map<String, dynamic>> playlists = [];
+  List<Map<String, dynamic>> filteredPlaylists = [];
+
   bool isLoading = true;
   bool isUpdating = false;
+
+  final TextEditingController searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     loadPlaylists();
+
+    searchController.addListener(() {
+      filterPlaylists();
+    });
   }
 
   Future<void> loadPlaylists() async {
@@ -26,7 +34,18 @@ class _AddToPlaylistSheetState extends State<AddToPlaylistSheet> {
 
     setState(() {
       playlists = data;
+      filteredPlaylists = data;
       isLoading = false;
+    });
+  }
+
+  void filterPlaylists() {
+    final query = searchController.text.toLowerCase();
+
+    setState(() {
+      filteredPlaylists = playlists.where((p) {
+        return p["title"].toLowerCase().contains(query);
+      }).toList();
     });
   }
 
@@ -48,7 +67,6 @@ class _AddToPlaylistSheetState extends State<AddToPlaylistSheet> {
             return {
               ...p,
               "is_added": !isAdded,
-              // 🔥 update count biar realtime
               "song_count": isAdded
                   ? (p["song_count"] ?? 1) - 1
                   : (p["song_count"] ?? 0) + 1,
@@ -56,9 +74,10 @@ class _AddToPlaylistSheetState extends State<AddToPlaylistSheet> {
           }
           return p;
         }).toList();
+
+        filterPlaylists();
       });
 
-      // 🔥 Feedback
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -67,136 +86,194 @@ class _AddToPlaylistSheetState extends State<AddToPlaylistSheet> {
           duration: const Duration(seconds: 1),
         ),
       );
-    } catch (e) {
-      print("Toggle error: $e");
     } finally {
       setState(() => isUpdating = false);
     }
   }
 
+  /// 🔥 CREATE PLAYLIST
+  Future<void> createPlaylist() async {
+    final controller = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: Colors.black,
+          title: const Text("New Playlist", style: TextStyle(color: Colors.white)),
+          content: TextField(
+            controller: controller,
+            style: const TextStyle(color: Colors.white),
+            decoration: const InputDecoration(
+              hintText: "Playlist name",
+              hintStyle: TextStyle(color: Colors.white54),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Cancel"),
+            ),
+            TextButton(
+              onPressed: () async {
+                final name = controller.text.trim();
+                if (name.isEmpty) return;
+
+                Navigator.pop(context);
+
+                await ApiService.createPlaylist(name);
+
+                loadPlaylists(); // refresh list
+              },
+              child: const Text("Create"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: Colors.black,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      child: Padding(
-        padding: EdgeInsets.only(
-          left: 20,
-          right: 20,
-          top: 12,
-          bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+    return FractionallySizedBox(
+      heightFactor: 0.9, // 🔥 bikin sheet tinggi
+      child: Container(
+        decoration: const BoxDecoration(
+          color: Colors.black,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            /// 🔘 DRAG INDICATOR
-            Container(
-              width: 40,
-              height: 4,
-              margin: const EdgeInsets.only(bottom: 12),
-              decoration: BoxDecoration(
-                color: Colors.grey[700],
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-
-            /// TITLE
-            const Text(
-              "Saved in",
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-
-            const SizedBox(height: 20),
-
-            /// CONTENT
-            if (isLoading)
-              const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(20),
-                  child: CircularProgressIndicator(color: Colors.white),
+        child: Padding(
+          padding: EdgeInsets.only(
+            left: 20,
+            right: 20,
+            top: 12,
+            bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+          ),
+          child: Column(
+            children: [
+              /// 🔘 DRAG
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 12),
+                decoration: BoxDecoration(
+                  color: Colors.grey[700],
+                  borderRadius: BorderRadius.circular(10),
                 ),
-              )
-            else if (playlists.isEmpty)
+              ),
+
+              /// TITLE
               const Text(
-                "No playlists found",
-                style: TextStyle(color: Colors.white70),
-              )
-            else
-              Flexible(
-                child: ListView.separated(
-                  shrinkWrap: true,
-                  itemCount: playlists.length,
-                  separatorBuilder: (_, _) => const SizedBox(height: 8),
-                  itemBuilder: (context, index) {
-                    final playlist = playlists[index];
-                    final isAdded = playlist["is_added"] == true;
+                "Saved in",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
 
-                    return ListTile(
-                      contentPadding: EdgeInsets.zero,
+              const SizedBox(height: 16),
 
-                      /// 🎵 COVER
-                      leading: ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: Image.network(
-                          playlist["cover"] ?? "",
+              /// 🔍 SEARCH
+              TextField(
+                controller: searchController,
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  hintText: "Search playlist...",
+                  hintStyle: const TextStyle(color: Colors.white54),
+                  prefixIcon: const Icon(Icons.search, color: Colors.white54),
+                  filled: true,
+                  fillColor: Colors.grey[900],
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              /// CONTENT
+              if (isLoading)
+                const Expanded(
+                  child: Center(
+                    child: CircularProgressIndicator(color: Colors.white),
+                  ),
+                )
+              else
+                Expanded(
+                  child: ListView(
+                    children: [
+                      /// 🎵 PLAYLIST LIST
+                      ...filteredPlaylists.map((playlist) {
+                        final isAdded = playlist["is_added"] == true;
+
+                        return ListTile(
+                          contentPadding: EdgeInsets.zero,
+
+                          leading: ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.network(
+                              playlist["cover"] ?? "",
+                              width: 50,
+                              height: 50,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => Container(
+                                width: 50,
+                                height: 50,
+                                color: Colors.grey[800],
+                                child: const Icon(Icons.music_note,
+                                    color: Colors.white),
+                              ),
+                            ),
+                          ),
+
+                          title: Text(
+                            playlist["title"],
+                            style: const TextStyle(color: Colors.white),
+                          ),
+
+                          subtitle: Text(
+                            "${playlist["song_count"] ?? 0} songs",
+                            style: const TextStyle(color: Colors.white60),
+                          ),
+
+                          trailing: Icon(
+                            isAdded ? Icons.check : Icons.add,
+                            color: Colors.white,
+                          ),
+
+                          onTap: () {
+                            togglePlaylist(playlist["id"], isAdded);
+                          },
+                        );
+                      }),
+
+                      const SizedBox(height: 20),
+
+                      /// ➕ CREATE PLAYLIST
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: Container(
                           width: 50,
                           height: 50,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) =>
-                              Container(
-                            width: 50,
-                            height: 50,
+                          decoration: BoxDecoration(
                             color: Colors.grey[800],
-                            child: const Icon(Icons.music_note,
-                                color: Colors.white),
+                            borderRadius: BorderRadius.circular(8),
                           ),
+                          child: const Icon(Icons.add, color: Colors.white),
                         ),
-                      ),
-
-                      /// 📝 TITLE
-                      title: Text(
-                        playlist["title"],
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
+                        title: const Text(
+                          "Create new playlist",
+                          style: TextStyle(color: Colors.white),
                         ),
+                        onTap: createPlaylist,
                       ),
-
-                      /// 🎧 SONG COUNT
-                      subtitle: Text(
-                        "${playlist["song_count"] ?? 0} songs",
-                        style: const TextStyle(
-                          color: Colors.white60,
-                          fontSize: 12,
-                        ),
-                      ),
-
-                      /// ➕ / ✔ BUTTON
-                      trailing: AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 200),
-                        child: Icon(
-                          isAdded ? Icons.check : Icons.add,
-                          key: ValueKey(isAdded),
-                          color: isUpdating
-                              ? Colors.grey
-                              : Colors.white,
-                        ),
-                      ),
-
-                      onTap: () {
-                        togglePlaylist(playlist["id"], isAdded);
-                      },
-                    );
-                  },
+                    ],
+                  ),
                 ),
-              ),
-          ],
+            ],
+          ),
         ),
       ),
     );
