@@ -19,18 +19,21 @@ Motifey adalah aplikasi pemutar musik full-stack yang terinspirasi dari Spotify.
 
 ## 📂 Struktur Project
 motifey-app/
+
 ├── frontend/    # Flutter Mobile App
+
 └── backend/     # Node.js Express API
 
 ## ⚙️ Cara Menjalankan
 1. Persiapan Backend
 Pastikan Anda memiliki Docker terinstal. Masuk ke folder backend:
 
-Bash
+```Bash
 cd backend
 Jalankan container menggunakan perintah berikut (sesuaikan koneksi DB di db.js):
+```
 
-Bash
+```Bash
 docker run -it --rm --name motifey-backend \
   -p 3000:3000 \
   -v ${PWD}:/app \
@@ -38,21 +41,43 @@ docker run -it --rm --name motifey-backend \
   -w /app \
   node:22-slim \
   npx nodemon -L server.js
+```
 2. Persiapan Frontend
 Masuk ke folder frontend:
 
-Bash
+```Bash
 cd frontend
 Pastikan alamat baseUrl di lib/services/api_service.dart sudah sesuai dengan IP Address laptop Anda. Lalu jalankan aplikasi:
-
-Bash
+```
+```Bash
 flutter pub get
 flutter run
-
+```
 ## 📝 Catatan Penting
 Ganti baseUrl di api_service.dart menggunakan IP lokal (misal: 192.168.x.x) agar bisa diakses oleh emulator atau perangkat fisik.
 
 Jalankan endpoint /seed (POST) pada backend untuk mengisi data awal ke database.
+
+## 📸 App Screenshots
+
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/0652f311-c831-42ae-942d-aff222734651" width="200" alt="motifey1">
+  <img src="https://github.com/user-attachments/assets/9652ab03-006e-4b9f-8a92-98da966960fb" width="200" alt="motifey2">
+  <img src="https://github.com/user-attachments/assets/0f9b8845-87ab-4087-b92e-f57f102e2a38" width="200" alt="motifey3">
+</p>
+
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/f66e1b82-c89c-4717-a764-f4d0cd75f4a8" width="200" alt="motifey4">
+  <img src="https://github.com/user-attachments/assets/ce8a5cd8-d90f-4030-8e07-42096ff1113a" width="200" alt="motifey5">
+  <img src="https://github.com/user-attachments/assets/cb57b3f0-652d-4e33-aad5-28e93ab2a12e" width="200" alt="motifey6">
+</p>
+
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/7bedd022-95f7-45c6-89c8-f30f52b73ca4" width="200" alt="motifey7">
+  <img src="https://github.com/user-attachments/assets/41b1cd4f-d14a-4624-aeac-241936a8377c" width="200" alt="motifey8">
+  <img src="https://github.com/user-attachments/assets/98025b14-bc7f-4cc3-82e4-af02cc38c47d" width="200" alt="motifey9">
+</p>
+
 
 👤 Author
 brynathn
