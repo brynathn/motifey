@@ -207,7 +207,7 @@ app.put("/playlists/:id", authMiddleware, async (req, res) => {
 //////////////////////////////////////////////////////
 
 app.post("/playlists", authMiddleware, async (req, res) => {
-  const { title, description, cover } = req.body;
+  const { title, description, cover, songId } = req.body;
   const userId = req.user.userId;
 
   if (!title) {
@@ -215,6 +215,8 @@ app.post("/playlists", authMiddleware, async (req, res) => {
   }
 
   try {
+    await pool.query("BEGIN");
+
     const result = await pool.query(
       `INSERT INTO playlists (id, title, creator_id, description, cover)
        VALUES (gen_random_uuid(), $1, $2, $3, $4)
@@ -222,8 +224,21 @@ app.post("/playlists", authMiddleware, async (req, res) => {
       [title, userId, description, cover]
     );
 
-    res.json(result.rows[0]);
+    const playlist = result.rows[0];
+
+    if (songId) {
+      await pool.query(
+        `INSERT INTO playlist_songs (playlist_id, song_id)
+         VALUES ($1, $2)`,
+        [playlist.id, songId]
+      );
+    }
+
+    await pool.query("COMMIT");
+
+    res.json(playlist);
   } catch (err) {
+    await pool.query("ROLLBACK");
     res.status(500).json({ error: err.message });
   }
 });
@@ -351,6 +366,43 @@ app.delete("/playlists/:id/songs/:songId", authMiddleware, async (req, res) => {
 
     res.json({ message: "Song removed" });
   } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete("/playlists/:id", authMiddleware, async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    // 🔥 pastikan milik user
+    const existing = await pool.query(
+      "SELECT * FROM playlists WHERE id = $1 AND creator_id = $2",
+      [id, req.user.userId]
+    );
+
+    if (existing.rows.length === 0) {
+      return res.status(404).json({ message: "Playlist not found" });
+    }
+
+    await pool.query("BEGIN");
+
+    // 🔥 delete relasi dulu
+    await pool.query(
+      "DELETE FROM playlist_songs WHERE playlist_id = $1",
+      [id]
+    );
+
+    // 🔥 delete playlist
+    await pool.query(
+      "DELETE FROM playlists WHERE id = $1",
+      [id]
+    );
+
+    await pool.query("COMMIT");
+
+    res.json({ message: "Playlist deleted" });
+  } catch (err) {
+    await pool.query("ROLLBACK");
     res.status(500).json({ error: err.message });
   }
 });

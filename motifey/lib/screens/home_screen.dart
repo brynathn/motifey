@@ -15,14 +15,13 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  late Future<List<Playlist>> _playlistFuture;
-
   @override
   void initState() {
     super.initState();
     _requestNotificationPermission();
-    // Inisialisasi future
-    _playlistFuture = ApiService.fetchPlaylists();
+
+    // 🔥 load pertama kali
+    ApiService.emitPlaylists();
   }
 
   Future<void> _requestNotificationPermission() async {
@@ -44,42 +43,20 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       drawer: const ProfileDrawer(),
       backgroundColor: Colors.black,
-      // AppBar dihapus agar bisa dibuat custom di dalam body
       body: SafeArea(
-        child: FutureBuilder<List<Playlist>>(
-          future: _playlistFuture,
+        child: StreamBuilder<List<Playlist>>(
+          stream: ApiService.playlistStream,
           builder: (context, snapshot) {
-            // 1. STATE LOADING
-            if (snapshot.connectionState == ConnectionState.waiting) {
+            /// 🔄 LOADING
+            if (!snapshot.hasData) {
               return const Center(
                 child: CircularProgressIndicator(color: Colors.green),
               );
             }
 
-            // 2. STATE ERROR
-            if (snapshot.hasError) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Text("Error loading playlists",
-                        style: TextStyle(color: Colors.white)),
-                    const SizedBox(height: 10),
-                    TextButton(
-                      onPressed: () => setState(() {
-                        _playlistFuture = ApiService.fetchPlaylists();
-                      }),
-                      child: const Text("Retry",
-                          style: TextStyle(color: Colors.green)),
-                    )
-                  ],
-                ),
-              );
-            }
+            final playlists = snapshot.data!;
 
-            final playlists = snapshot.data ?? [];
-
-            // 3. STATE KOSONG
+            /// ❌ EMPTY
             if (playlists.isEmpty) {
               return const Center(
                 child: Text("No playlists available",
@@ -94,7 +71,7 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  /// 🏠 CUSTOM HEADER (Simetris dengan Search & Library)
+                  /// HEADER
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 20, 16, 10),
                     child: Row(
@@ -103,7 +80,6 @@ class _HomeScreenState extends State<HomeScreen> {
                           final auth = AuthController.instance;
                           return GestureDetector(
                             onTap: () {
-                              // Panggil scaffoldKey milik MainScreen
                               MainScreen.scaffoldKey.currentState?.openDrawer();
                             },
                             child: CircleAvatar(
@@ -128,7 +104,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
 
-                  /// 🔥 ISI BODY
+                  /// CONTENT
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Column(
@@ -136,7 +112,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       children: [
                         const SizedBox(height: 10),
 
-                        /// 📁 GRID PLAYLIST (2 KOLOM)
+                        /// GRID
                         Wrap(
                           spacing: 12,
                           runSpacing: 12,
@@ -153,16 +129,18 @@ class _HomeScreenState extends State<HomeScreen> {
                                 child: Row(
                                   children: [
                                     ClipRRect(
-                                      borderRadius: const BorderRadius.horizontal(
-                                          left: Radius.circular(4)),
+                                      borderRadius:
+                                          const BorderRadius.horizontal(
+                                              left: Radius.circular(4)),
                                       child: Image.network(
                                         playlist.playlistCover,
                                         width: 56,
                                         height: 56,
                                         fit: BoxFit.cover,
-                                        errorBuilder: (context, e, s) =>
+                                        errorBuilder: (_, _, _) =>
                                             Container(
-                                                width: 56, color: Colors.grey),
+                                                width: 56,
+                                                color: Colors.grey),
                                       ),
                                     ),
                                     const SizedBox(width: 8),
@@ -187,7 +165,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
                         const SizedBox(height: 32),
 
-                        /// 🔥 SECTION TITLE
                         const Text(
                           "Made For You",
                           style: TextStyle(
@@ -199,15 +176,15 @@ class _HomeScreenState extends State<HomeScreen> {
 
                         const SizedBox(height: 16),
 
-                        /// 🔥 HORIZONTAL LIST
+                        /// HORIZONTAL
                         SizedBox(
                           height: 210,
                           child: ListView.builder(
                             scrollDirection: Axis.horizontal,
-                            physics: const BouncingScrollPhysics(),
                             itemCount: playlists.length,
                             itemBuilder: (context, index) {
                               final playlist = playlists[index];
+
                               return GestureDetector(
                                 onTap: () => _openPlaylist(playlist),
                                 child: Container(
@@ -218,17 +195,19 @@ class _HomeScreenState extends State<HomeScreen> {
                                         CrossAxisAlignment.start,
                                     children: [
                                       ClipRRect(
-                                        borderRadius: BorderRadius.circular(8),
+                                        borderRadius:
+                                            BorderRadius.circular(8),
                                         child: Image.network(
                                           playlist.playlistCover,
                                           height: 150,
                                           width: 150,
                                           fit: BoxFit.cover,
-                                          errorBuilder: (context, e, s) =>
+                                          errorBuilder: (_, _, _) =>
                                               Container(
-                                                  height: 150,
-                                                  width: 150,
-                                                  color: Colors.grey),
+                                            height: 150,
+                                            width: 150,
+                                            color: Colors.grey,
+                                          ),
                                         ),
                                       ),
                                       const SizedBox(height: 8),
@@ -237,10 +216,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                         style: const TextStyle(
                                           color: Colors.white,
                                           fontWeight: FontWeight.bold,
-                                          fontSize: 14,
                                         ),
                                         maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
                                       ),
                                       Text(
                                         AuthController.instance.currentUser
@@ -248,8 +225,6 @@ class _HomeScreenState extends State<HomeScreen> {
                                             'User',
                                         style: const TextStyle(
                                             color: Colors.grey, fontSize: 12),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
                                       ),
                                     ],
                                   ),
@@ -258,8 +233,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             },
                           ),
                         ),
-                        
-                        // Space untuk MiniPlayer di bawah
+
                         const SizedBox(height: 120),
                       ],
                     ),

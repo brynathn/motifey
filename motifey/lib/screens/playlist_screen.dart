@@ -4,6 +4,7 @@ import 'package:motifey/controller/audio_controller.dart';
 import 'package:motifey/controller/auth_controller.dart';
 import 'package:motifey/services/api_service.dart';
 import 'package:motifey/models/song_model.dart';
+import 'package:motifey/widgets/playlist_options_sheet.dart';
 import '../models/playlist_model.dart';
 import '../widgets/play_button.dart';
 import '../widgets/equalizer.dart';
@@ -121,6 +122,14 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
                             ],
                           ),
                         ),
+                          actions: [
+                          IconButton(
+                            icon: const Icon(Icons.more_vert, color: Colors.white),
+                            onPressed: () {
+                              _showPlaylistOptions(context);
+                            },
+                          ),
+                        ],
                       ),
 
                       /// 🔥 HEADER INFO
@@ -234,6 +243,17 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
           );
         },
       ),
+    );
+  }
+
+    void _showPlaylistOptions(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) {
+        return PlaylistOptionsSheet(playlist: widget.playlist);
+      },
     );
   }
 }

@@ -107,7 +107,7 @@ class PlayerScreen extends StatelessWidget {
                           IconButton(
                             icon: const Icon(Icons.add, color: Colors.white),
                             onPressed: () {
-                              _showAddToPlaylist(context, song.id);
+                              _showAddToPlaylist(context, song.id, song.songCover);
                             },
                           ),
                         ],
@@ -219,16 +219,20 @@ class PlayerScreen extends StatelessWidget {
   }
 }
 
-void _showAddToPlaylist(BuildContext context, String songId) {
+void _showAddToPlaylist(
+  BuildContext context,
+  String songId,
+  String songCover,
+) {
   showModalBottomSheet(
     context: context,
-    backgroundColor: Colors.black,
+    backgroundColor: Colors.transparent,
     isScrollControlled: true,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-    ),
     builder: (context) {
-      return AddToPlaylistSheet(songId: songId);
+      return AddToPlaylistSheet(
+        songId: songId,
+        songCover: songCover,
+      );
     },
   );
 }

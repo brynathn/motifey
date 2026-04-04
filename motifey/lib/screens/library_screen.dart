@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:motifey/screens/main_screen.dart';
@@ -14,13 +16,31 @@ class LibraryScreen extends StatefulWidget {
 }
 
 class _LibraryScreenState extends State<LibraryScreen> {
-  late Future<List<Playlist>> _playlistFuture;
+  List<Playlist> playlists = [];
+  bool isLoading = true;
+
+  StreamSubscription? _sub;
 
   @override
   void initState() {
     super.initState();
-    // Menggunakan fetchPlaylists (pastikan backend sudah update query song_count)
-    _playlistFuture = ApiService.fetchPlaylists();
+
+    /// 🔥 LISTEN STREAM (REALTIME UPDATE)
+    _sub = ApiService.playlistStream.listen((data) {
+      setState(() {
+        playlists = data;
+        isLoading = false;
+      });
+    });
+
+    /// 🔥 TRIGGER FIRST LOAD
+    ApiService.emitPlaylists();
+  }
+
+  @override
+  void dispose() {
+    _sub?.cancel();
+    super.dispose();
   }
 
   void _openPlaylist(Playlist playlist) {
@@ -32,12 +52,11 @@ class _LibraryScreenState extends State<LibraryScreen> {
     return Scaffold(
       drawer: const ProfileDrawer(),
       backgroundColor: Colors.black,
-      // AppBar dihapus untuk diganti dengan Custom Header di body
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            /// 📚 CUSTOM HEADER (Simetris dengan Home & Search)
+            /// 📚 HEADER
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 20, 16, 10),
               child: Row(
@@ -51,8 +70,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
                       child: CircleAvatar(
                         radius: 18,
                         backgroundImage: NetworkImage(
-                          auth.currentUser?.profileImage ?? 
-                          "https://xyfdsaighjmiiketlhep.supabase.co/storage/v1/object/public/profile/default_profile.png"
+                          auth.currentUser?.profileImage ??
+                              "https://xyfdsaighjmiiketlhep.supabase.co/storage/v1/object/public/profile/default_profile.png",
                         ),
                       ),
                     );
@@ -61,105 +80,82 @@ class _LibraryScreenState extends State<LibraryScreen> {
                   const Text(
                     "Your Library",
                     style: TextStyle(
-                      color: Colors.white, 
-                      fontSize: 24, 
-                      fontWeight: FontWeight.bold
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ],
               ),
             ),
 
-            /// 🔥 CONTENT LIST
+            /// 🔥 CONTENT
             Expanded(
-              child: FutureBuilder<List<Playlist>>(
-                future: _playlistFuture,
-                builder: (context, snapshot) {
-                  // --- STATE LOADING ---
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(
+              child: isLoading
+                  ? const Center(
                       child: CircularProgressIndicator(color: Colors.green),
-                    );
-                  }
-
-                  // --- STATE ERROR ---
-                  if (snapshot.hasError) {
-                    return Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Text(
-                            "Error loading library",
-                            style: TextStyle(color: Colors.white),
+                    )
+                  : playlists.isEmpty
+                      ? const Center(
+                          child: Text(
+                            "No playlists found",
+                            style: TextStyle(color: Colors.grey, fontSize: 16),
                           ),
-                          TextButton(
-                            onPressed: () => setState(() {
-                              _playlistFuture = ApiService.fetchPlaylists();
-                            }),
-                            child: const Text("Retry", style: TextStyle(color: Colors.green)),
-                          )
-                        ],
-                      ),
-                    );
-                  }
+                        )
+                      : ListView.builder(
+                          padding:
+                              const EdgeInsets.only(bottom: 120, top: 10),
+                          physics: const BouncingScrollPhysics(),
+                          itemCount: playlists.length,
+                          itemBuilder: (context, index) {
+                            final playlist = playlists[index];
 
-                  final playlists = snapshot.data ?? [];
+                            return ListTile(
+                              onTap: () => _openPlaylist(playlist),
+                              contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 4),
 
-                  // --- STATE KOSONG ---
-                  if (playlists.isEmpty) {
-                    return const Center(
-                      child: Text(
-                        "No playlists found",
-                        style: TextStyle(color: Colors.grey, fontSize: 16),
-                      ),
-                    );
-                  }
+                              /// 🎵 COVER
+                              leading: ClipRRect(
+                                borderRadius: BorderRadius.circular(6),
+                                child: Image.network(
+                                  playlist.playlistCover,
+                                  width: 55,
+                                  height: 55,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      Container(
+                                    width: 55,
+                                    height: 55,
+                                    color: Colors.grey[900],
+                                    child: const Icon(Icons.music_note,
+                                        color: Colors.white24),
+                                  ),
+                                ),
+                              ),
 
-                  // --- LIST VIEW ---
-                  return ListView.builder(
-                    // Memberikan padding bawah agar tidak tertutup MiniPlayer
-                    padding: const EdgeInsets.only(bottom: 120, top: 10),
-                    physics: const BouncingScrollPhysics(),
-                    itemCount: playlists.length,
-                    itemBuilder: (context, index) {
-                      final playlist = playlists[index];
+                              /// 🎵 TITLE
+                              title: Text(
+                                playlist.title,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 16,
+                                ),
+                              ),
 
-                      return ListTile(
-                        onTap: () => _openPlaylist(playlist),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                        leading: ClipRRect(
-                          borderRadius: BorderRadius.circular(6),
-                          child: Image.network(
-                            playlist.playlistCover,
-                            width: 55,
-                            height: 55,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) => Container(
-                              width: 55,
-                              height: 55,
-                              color: Colors.grey[900],
-                              child: const Icon(Icons.music_note, color: Colors.white24),
-                            ),
-                          ),
+                              /// 🎵 SUBTITLE
+                              subtitle: Text(
+                                "${AuthController.instance.currentUser?.username ?? 'User'} • ${playlist.songCount} songs",
+                                style: const TextStyle(
+                                    color: Colors.grey, fontSize: 13),
+                              ),
+
+                              trailing: const Icon(Icons.more_vert,
+                                  color: Colors.grey),
+                            );
+                          },
                         ),
-                        title: Text(
-                          playlist.title,
-                          style: const TextStyle(
-                            color: Colors.white, 
-                            fontWeight: FontWeight.w600,
-                            fontSize: 16,
-                          ),
-                        ),
-                        subtitle: Text(
-                          "${AuthController.instance.currentUser?.username ?? 'User'} • ${playlist.songCount} songs",
-                          style: const TextStyle(color: Colors.grey, fontSize: 13),
-                        ),
-                        trailing: const Icon(Icons.more_vert, color: Colors.grey),
-                      );
-                    },
-                  );
-                },
-              ),
             ),
           ],
         ),

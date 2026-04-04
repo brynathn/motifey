@@ -3,8 +3,9 @@ import '../services/api_service.dart';
 
 class AddToPlaylistSheet extends StatefulWidget {
   final String songId;
+  final String songCover; 
 
-  const AddToPlaylistSheet({super.key, required this.songId});
+  const AddToPlaylistSheet({super.key, required this.songId, required this.songCover});
 
   @override
   State<AddToPlaylistSheet> createState() => _AddToPlaylistSheetState();
@@ -91,47 +92,61 @@ class _AddToPlaylistSheetState extends State<AddToPlaylistSheet> {
     }
   }
 
-  /// 🔥 CREATE PLAYLIST
-  Future<void> createPlaylist() async {
-    final controller = TextEditingController();
+Future<void> createPlaylist() async {
+  final controller = TextEditingController();
 
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          backgroundColor: Colors.black,
-          title: const Text("New Playlist", style: TextStyle(color: Colors.white)),
-          content: TextField(
-            controller: controller,
-            style: const TextStyle(color: Colors.white),
-            decoration: const InputDecoration(
-              hintText: "Playlist name",
-              hintStyle: TextStyle(color: Colors.white54),
-            ),
+  showDialog(
+    context: context,
+    builder: (context) {
+      return AlertDialog(
+        backgroundColor: Colors.black,
+        title: const Text(
+          "New Playlist",
+          style: TextStyle(color: Colors.white),
+        ),
+        content: TextField(
+          controller: controller,
+          style: const TextStyle(color: Colors.white),
+          decoration: const InputDecoration(
+            hintText: "Playlist name",
+            hintStyle: TextStyle(color: Colors.white54),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text("Cancel"),
-            ),
-            TextButton(
-              onPressed: () async {
-                final name = controller.text.trim();
-                if (name.isEmpty) return;
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
+          TextButton(
+            onPressed: () async {
+              final name = controller.text.trim();
+              if (name.isEmpty) return;
 
-                Navigator.pop(context);
+              Navigator.pop(context);
 
-                await ApiService.createPlaylist(name);
+              // 🔥 CREATE + AUTO ADD + SET COVER
+              await ApiService.createPlaylist(
+                name,
+                widget.songCover, // cover dari lagu
+                widget.songId,    // auto add lagu
+              );
 
-                loadPlaylists(); // refresh list
-              },
-              child: const Text("Create"),
-            ),
-          ],
-        );
-      },
-    );
-  }
+              await loadPlaylists(); // refresh
+
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text("Playlist created & song added"),
+                  duration: Duration(seconds: 1),
+                ),
+              );
+            },
+            child: const Text("Create"),
+          ),
+        ],
+      );
+    },
+  );
+}
 
   @override
   Widget build(BuildContext context) {
