@@ -141,4 +141,45 @@ static Future<List<Playlist>> fetchPlaylistsWithSongs() async {
 
   return playlists;
 }
+
+static Future<List<Map<String, dynamic>>> fetchPlaylistsWithStatus(String songId) async {
+  final token = await getToken();
+
+  final response = await http.get(
+    Uri.parse("$baseUrl/playlists-with-status/$songId"),
+    headers: {"Authorization": "Bearer $token"},
+  );
+
+  if (response.statusCode == 200) {
+    return List<Map<String, dynamic>>.from(jsonDecode(response.body));
+  }
+
+  return [];
+}
+
+static Future<void> addSongToPlaylist(String playlistId, String songId) async {
+  final token = await getToken();
+
+  await http.post(
+    Uri.parse("$baseUrl/playlists/$playlistId/songs"),
+    headers: {
+      "Authorization": "Bearer $token",
+      "Content-Type": "application/json",
+    },
+    body: jsonEncode({
+      "songId": songId,
+    }),
+  );
+}
+
+static Future<void> removeSongFromPlaylist(String playlistId, String songId) async {
+  final token = await getToken();
+
+  await http.delete(
+    Uri.parse("$baseUrl/playlists/$playlistId/songs/$songId"),
+    headers: {
+      "Authorization": "Bearer $token",
+    },
+  );
+}
 }

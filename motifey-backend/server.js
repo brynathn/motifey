@@ -260,18 +260,15 @@ app.post("/playlists/:id/songs", authMiddleware, async (req, res) => {
   const { songId } = req.body;
   const playlistId = req.params.id;
 
-  if (!songId) {
-    return res.status(400).json({ message: "songId wajib" });
-  }
-
   try {
     await pool.query(
       `INSERT INTO playlist_songs (playlist_id, song_id)
-       VALUES ($1, $2)`,
+       VALUES ($1, $2)
+       ON CONFLICT DO NOTHING`,
       [playlistId, songId]
     );
 
-    res.json({ message: "Song added" });
+    res.json({ message: "Song added (safe)" });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -305,6 +302,54 @@ app.get("/profile", authMiddleware, async (req, res) => {
     );
 
     res.json(result.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/playlists-with-status/:songId", authMiddleware, async (req, res) => {
+  const userId = req.user.userId;
+  const { songId } = req.params;
+
+  try {
+    const result = await pool.query(
+      `
+      SELECT 
+        p.id,
+        p.title,
+        p.cover,
+        COUNT(ps.song_id)::int AS song_count,
+        EXISTS (
+          SELECT 1 FROM playlist_songs ps2
+          WHERE ps2.playlist_id = p.id
+          AND ps2.song_id = $2
+        ) AS is_added
+      FROM playlists p
+      LEFT JOIN playlist_songs ps ON p.id = ps.playlist_id
+      WHERE p.creator_id = $1
+      GROUP BY p.id
+      ORDER BY p.created_at DESC
+      `,
+      [userId, songId]
+    );
+
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete("/playlists/:id/songs/:songId", authMiddleware, async (req, res) => {
+  const { id: playlistId, songId } = req.params;
+
+  try {
+    await pool.query(
+      `DELETE FROM playlist_songs
+       WHERE playlist_id = $1 AND song_id = $2`,
+      [playlistId, songId]
+    );
+
+    res.json({ message: "Song removed" });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

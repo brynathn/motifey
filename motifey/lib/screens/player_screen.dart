@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:motifey/controller/audio_controller.dart';
+import 'package:motifey/widgets/add_to_playlist_sheet.dart';
 
 class PlayerScreen extends StatelessWidget {
   const PlayerScreen({super.key});
@@ -88,15 +89,28 @@ class PlayerScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        song.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 26,
-                          fontWeight: FontWeight.bold,
-                        ),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              song.title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 26,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          IconButton(
+                            icon: const Icon(Icons.add, color: Colors.white),
+                            onPressed: () {
+                              _showAddToPlaylist(context, song.id);
+                            },
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 8),
                       Text(
@@ -203,4 +217,18 @@ class PlayerScreen extends StatelessWidget {
       ),
     );
   }
+}
+
+void _showAddToPlaylist(BuildContext context, String songId) {
+  showModalBottomSheet(
+    context: context,
+    backgroundColor: Colors.black,
+    isScrollControlled: true,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+    ),
+    builder: (context) {
+      return AddToPlaylistSheet(songId: songId);
+    },
+  );
 }
